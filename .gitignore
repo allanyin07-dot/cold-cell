@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.pyc
+
+# STM32CubeIDE build output
+Debug/
+Release/
+
+# C test binaries
+*.o
+test_*
+!test_*.c
+
+# KiCad backups
+*-backups/
+*.kicad_prl
+
+# OS clutter
+.DS_Store
+Thumbs.db
