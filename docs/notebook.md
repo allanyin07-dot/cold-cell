@@ -78,3 +78,25 @@ Conclusion: The toolchain and repo are ready for D1 on Saturday. Most of the tim
 Next action: Thu Nov 12: check the five Tier A careers pages, set job alerts, and read E1 chapter 1. Verify the careers-page links in the tracker.
 
 Explain-back: sudo and apt only exist in Ubuntu, so PowerShell said "not recognized," and WSL has no browser, so I entered the gh login code manually at github.com/login/device. My pushes were rejected because GitHub already had commits my laptop lacked, and git pull --rebase then stopped on a conflict because notebook.md had changed on both sides, so I chose which version to keep and ran git rebase --continue. I also kept running commands from my home folder instead of cold-cell, so I should check pwd first.
+
+## R0 — E1 Chapter 1: Basic concepts of electricity        Date: 2026-11-12
+
+Goal: Refresh charge, voltage, current, and resistance before D1 (Sat Nov 14).
+
+Requirements touched: none (foundation reading, module M1)
+
+Key ideas (one line each, my own words):
+- Voltage: Voltage is the amount of energy per unit charge required to move charge from one point to another point.
+- Current: Current is the rate of change flow past a point; in wires it is carried by electrons
+- Resistance: Resistance is the how strongly a material opposes the flow of electrons, AKA the current
+- Closed circuit: A closed circuit is a circuit that has no breaks in it and allows current to flow
+- Conventional vs electron flow: Conventional flow is the direction a positive charge would move from + to - and electron flow is the opposite as a negative charge would move from - to +
+
+Project connection:
+- The heater path is a closed loop: Cell+ -> fuse -> INA219 -> thermostat -> heater -> MOSFET -> Cell-. Opening the fuse, thermostat, or MOSFET stops the current. This is why each one works as an independent safety layer (Section 2.7).
+
+Anything unclear (re-check before D1):
+-Current isn’t used up by resistors; it’s the same all around a series loop.
+
+Explain-back (3 sentences from memory, no notes):
+Voltage is the amount of energy per unit charge required to move a charge between two points. Current is the rate of charge flow past a certain point while resistance is how strongly a material opposes the current. These three all relate to each other as passing through a material consumes voltage and decreases the overall current in the circuit. The difference between conventional current and electron flow is that conventional current models the direction of a positive charge moving from + to - while electron flow goes in the direction of electrons which is - to +. In schematics, conventional current is typically utilized. For the cold cell, current only flows in a closed loop so the cell's energy only reaches the heater when the loop is complete, and opening the fuse, thermostat, or MOSFET anywhere in the loop will shut the heater off
