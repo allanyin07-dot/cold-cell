@@ -79,6 +79,7 @@ Next action: Thu Nov 12: check the five Tier A careers pages, set job alerts, an
 
 Explain-back: sudo and apt only exist in Ubuntu, so PowerShell said "not recognized," and WSL has no browser, so I entered the gh login code manually at github.com/login/device. My pushes were rejected because GitHub already had commits my laptop lacked, and git pull --rebase then stopped on a conflict because notebook.md had changed on both sides, so I chose which version to keep and ran git rebase --continue. I also kept running commands from my home folder instead of cold-cell, so I should check pwd first.
 
+---
 ## R0 — E1 Chapter 1: Basic concepts of electricity        Date: 2026-11-12
 
 Goal: Refresh charge, voltage, current, and resistance before D1 (Sat Nov 14).
@@ -101,6 +102,7 @@ Anything unclear (re-check before D1):
 Explain-back (3 sentences from memory, no notes):
 Voltage is the amount of energy per unit charge required to move a charge between two points. Current is the rate of charge flow past a certain point while resistance is how strongly a material opposes the current. These three all relate to each other as passing through a material consumes voltage and decreases the overall current in the circuit. The difference between conventional current and electron flow is that conventional current models the direction of a positive charge moving from + to - while electron flow goes in the direction of electrons which is - to +. In schematics, conventional current is typically utilized. For the cold cell, current only flows in a closed loop so the cell's energy only reaches the heater when the loop is complete, and opening the fuse, thermostat, or MOSFET anywhere in the loop will shut the heater off
 
+---
 ## R0 — D1 Chapter 1: Circuits you can trust       Date: 2026-11-14
 
 Goal: The goal of today is to build the habit of predicting circuit values by hand, and confirm them in LTspice within 2%."
@@ -174,3 +176,150 @@ Next action: S1 tomorrow (Sun Nov 15, 90 min): C types, variables and functions.
 Explain-back (3 sentences from memory, no notes):
 A voltage divider gives V_out = V_in * (R2/(R1+R2)), and this is because it only depends on the ratio of resistors 1 and 2. If both resistor values were doubled, the voltage out would remain the same. My hand calculations and LTspice agreed within 1% for dividers #3, #6 and #10, which makes sense because they utilize the same formula. The heater draws 0.74A and dissipates 1.37 W per resistor, and warming the cell by 20 K costs about 2% of its capacity, though it will likely be greater in a real world scenario
 
+---
+## S1 — C from Python, Part 1        Date: 2026-11-15        Time: 7:30-9:30
+
+**Goal:** Write, compile and run five small C programs, and explain how C's types and integer division differ from Python's.
+
+**Requirements touched:** None directly. Foundation for R1 and R2 firmware (ntc.c Nov 28, INA219 driver Dec 29).
+
+**Predictions (write these BEFORE you start):**
+- sizeof(int) will print 4
+- 5 / 2 will print 2, and 5.0 / 2 will print 2.5
+- A uint8_t holding 255, plus 1, will become 0
+- Converting 3156 ADC counts with counts / 4095 * 3.3 will print 0.000 V
+
+**Setup:** Laptop only. Compiler: gcc (Ubuntu 15.2.0-16ubuntu1) 15.2.0. Route A (WSL). Files: practice/c/s1/p1–p5. Firmware commit: n/a.
+
+**What I did:**
+1. Installed gcc in WSL. First attempt at `apt install build-essential` hit 404 errors until I ran `apt update` first. Now on Route A.
+2. Beej reading, chapters 2–4, 6 (skim), 14, 37; I read through the textbook about coding in C. Built my Python-vs-C table and type-size table.
+3. hello.c; to practice setting stdio.h and print hello world in main function. Typed `studio.h` instead of `stdio.h`; the error at 2:11 caused a knock-on `printf` error. Fixed, prints "Hello, World!".
+4. p1_float.c; to practice setting floats and printing them. Heater current and power printed with %f, %.2f and %.1f. Learned `%%` prints a literal %. Used the given printf lines for 3d.
+5. p2_sizes.c; to practice printing out sizes of variables. `long` = 8 bytes on WSL (4 on STM32). uint8_t 255 + 1 = 0. 0xFFF6 = 65526 unsigned, −10 as int16_t.
+6. p3_divider.c; to practice setting a function and calling it. `divider_vout()` gave #3 = 1.0551 V and #10 = 2.5431 V, both matching D1.
+7. p4_loop.c; to practice creating for loops and using the loop and functions to sort through information. Three arrays + a for loop over all ten D1 dividers; all rows match the answer key.
+8. p5_division.c; to practice and learn how C reads floats and integer division. `5%%2` failed to compile (%% only works inside quotes); `%d` with 5.0/2 gave a -Wformat warning, fixed with %f. counts/4095*3.3f = 0.000 V vs counts*3.3f/4095 = 2.543 V.
+
+**Notes:**
+**How a C program runs (3 steps):**
+1. Edit: write or change the `.c` file in VS Code and save it.
+2. Compile: `wsl gcc -std=c11 -Wall -Wextra -o hello.out hello.c` turns the source into a program (`hello.out`). You can combine multiple .c files and -std=c11 tells it what C version to run
+3. Run: `wsl ./hello.out` runs the compiled program, not the `.c` file.
+Recompile after every edit, or I'll run the old version.
+4. `#include <stdio.h>`: pulls in the standard input/output library so I can use `printf`. Roughly like `import` in Python. (Typing `studio.h` broke it today.)
+5. `int main(void)`: where the program starts running. Python runs a script top to bottom; C always starts at `main`. `return 0;` at the end means "finished OK".
+6. In C, setting variables requires you to identify the type of variable first before defining it
+- Eg. int A = 1, float B = 2.5f (if the float has a decimal, it needs an f suffix at the end), char C = 'c', char * D = "Hello"
+- Booleans are the same as python like 0 is false except anything else is true; bool needs #include <stdbool.h>
+- If i is a variable, i ++ adds 1 to i and i -- subtracts 1 from i
+- To print the size of a variable or expression, use %zu then sizeof()
+- If and else statements --> if (condition) { code }
+- Python: for i in range(10): → C for (int i = 0; i < 10; i++). This is the same as: while (i < 10)
+7. C copies each argument into the parameter, so the function only changes its own copy.
+8. C reads top to bottom, so a function must be defined or declared (with a prototype) above the line that calls it.
+9. Empty parameter lists: write `(void)` for "no arguments", e.g. `int main(void)`. Before C23 we use C11, `()` means "unknown arguments" and the compiler won't check calls.
+10. Function defining example in C: float heater_power(float v, float r)
+11. Signed int vs Unsigned int: signed types hold negatives and positives; unsigned types hold only 0 and up, but reach twice as high. Going past an unsigned type's max wraps around to 0.
+12. short / long: C doesn't fix their sizes; they depend on the machine. `long` is 8 bytes on my laptop (WSL) but 4 on the STM32.
+13. Fixed-width types (`#include <stdint.h>`): `uint8_t`, `uint16_t`, `int16_t`, `uint32_t`. The number is the number of bits (8 bits = 1 byte); `u` = unsigned. Same size on every machine, which is why firmware uses them.
+### Python vs C Table
+| Concept | Python | C |
+| --- | --- | --- |
+| Declare a variable | `x = 5` | `int x = 5;` |
+| Decimal number | `b = 2.4` | `float b = 2.4f` |
+| Divide two whole numbers | `7 / 2` → 3.5 | `7 / 2` → 3 |
+| Floor division | `7 // 2` → 3 |  N/A It starts a comment |
+| Remainder | `7 % 2` → 1 | `7 % 2` → 1 |
+| Counting loop | `for i in range(10):` | `for (int i = 0; i < 10; i++)` |
+| Print with 2 decimals | `print(f"{v:.2f}")` | `printf("%.2f\n", v);` |
+| Comment | `# text` | `// text` |
+| Function changes its argument? | No (for numbers) | No — it gets a copy |
+| Print signed whole number | `print(n)` | `printf("%d\n", n);` |
+| Print unsigned whole number | `print(n)` | `printf("%u\n", n);` |
+| Print float | `print(f"{v:.2f}")` | `printf("%.2f\n", v);` |
+| Print a sizeof result | `print(len(x))` | `printf("%zu\n", sizeof(x));` |
+| Print hex | `print(hex(n))` | `printf("%X\n", n);` |
+### Type sizes
+| Type | Predicted bytes | Measured bytes (WSL) | Range |
+| --- | --- | --- | --- |
+| `char` | 1 | 1 | - |
+| `int` | 1 | 4 | −2,147,483,648 to 2,147,483,647 |
+| `long` | 8 (WSL) / 4 (STM32) | 4 | depends on the machine |
+| `float` | 4 | 4 | about 7 sig figs |
+| `double` | 8 | 8 | about 15 sig figs |
+| `uint8_t` | 1 | 1 | 0 to 255 |
+| `uint16_t` | 2 | 2 | 0 to 65,535  |
+| `int16_t` | 2 | 2 | −32,768 to 32,767 |
+| `uint32_t` | 4 | 4 | 0 to 4,294,967,295 |
+**Predictions:**
+- Wraparound: a `uint8_t` at 255, plus 1, will print **0** (it passes its max of 255 and wraps to 0). Max is 2^bits − 1 (2^8 − 1 = 255)
+- Sign test: `uint16_t raw = 0xFFF6` will print 65526 as unsigned and −10 as `(int16_t)raw`.
+- 5/2 = 2
+- 5%2 = 1
+- 5.0/2 = 2.5
+- (float)5 = 2 = 2.5
+- (float)(5/2) = 2.0
+- uint16_t counts = 3156;: counts / 4095 * 3.3f -> 0
+- same counts: counts * 3.3f / 4095 -> 2.5432
+**What I observed:**
+- Heater: R = 5.0 ohm, I = 0.74 A
+- P (%f)   = 2.738000 W
+- P (%.2f) = 2.74 W
+- P (%.1f) = 2.7 W
+- Divider #3 = 1.0551 V, Divider #10 = 2.5431 V.
+
+Program 2 (p2_sizes.c):
+```
+char:     1 bytes
+int:      4 bytes
+long:     8 bytes
+float:    4 bytes
+double:   8 bytes
+uint8_t:  1 bytes
+uint16_t: 2 bytes
+int16_t:  2 bytes
+uint32_t: 4 bytes
+u: 0
+raw: 65526
+int16_t raw: -10
+```
+
+Program 5 (p5_division.c):
+```
+2
+1
+2.500000
+2.500000
+2.000000
+0.000 Vbad, 2.543 Vgood
+```
+
+**Results:**
+- All 9 measured sizes matched my predictions; `long` is 8 bytes on WSL (vs 4 on STM32).
+- p3: #3 = 1.0551 V, #10 = 2.5431 V, both exact matches with D1.
+- p4 reproduced all ten D1 dividers; largest difference from the answer key: none (all rows matched).
+- p5: integer division gave 0.000 V for the ADC conversion; reordering to multiply by 3.3f first gave the correct 2.543 V.
+**Anomalies:**
+- gcc wasn't installed in WSL. `apt install build-essential` failed with 404 errors (stale package list); fixed by running `apt update` first.
+- hello.c: typed `studio.h` instead of `stdio.h`. The first error (line 2, col 11) caused a knock-on "implicit declaration of printf" error. Lesson: fix the first error first.
+- p2: ran `./p2.out` before compiling → "No such file or directory". Must compile before running, and recompile after every edit.
+- p2: `long` measured 8 bytes on WSL, but it's 4 on the STM32. Code that assumes a size can work on the laptop and break on the board → use stdint.h types in firmware.
+- p5: wrote `5%%2` in code; `%%` only works inside a format string, so it didn't compile. Fixed to `5%2`.
+- p5: used `%d` for `5.0/2` (a double) → -Wformat warning. Fixed with `%f`. -Wall caught it before it printed garbage.
+- p5: `counts / 4095 * 3.3f` silently gives 0.000 V with no warning from gcc. Real firmware risk for the ADC conversion.
+- Session ran well past the 90-minute limit (setup and compiler install took most of the extra time).
+**Checkpoint:**
+- Explained why 5/2 is 2 in C and how to get 2.5: PASS
+- Why 2: 5 and 2 are both integers, so C does integer division and truncates the decimal.
+- How to get 2.5: make one operand a decimal: `5.0/2`, `5/2.0` or `(float)5/2`.
+- Why `(float)(5/2)` gives 2.0: the brackets run first, so 5/2 is already 2 before the cast turns it into 2.0.
+
+**Conclusion:**
+- C makes number types explicit, unlike Python. Integer division and type sizes are the traps that matter for firmware: ordering the ADC conversion wrong silently gives 0 V.
+
+**Next Action:** 
+- Weekday career slots Mon–Fri. D2 Thu Nov 19 (datasheets, 30 min). D3 Sat Nov 21 (thermistor and ADC, 2 h). S2 Sun Nov 22 (C part 2, 90 min).
+
+**Explain-back:**
+- In C, 5/2 is 2 because they are both integers, and to get 2.5, one of them has to be a float. On my laptop int is 4 bytes and long is 8 (but long is 4 on the STM32), which is why firmware uses fixed-width types like uint16_t and int16_t: they're the same size on every machine.Converting ADC counts with counts / 4095 * 3.3 gives 0 because counts / 4095 is integer division and truncates to 0 first, so the fix is to multiply by 3.3f first (counts * 3.3f / 4095).

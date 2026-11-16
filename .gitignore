@@ -18,3 +18,9 @@ test_*
 # OS clutter
 .DS_Store
 Thumbs.db
+
+*.out
+*.exe
+sim/*.log
+sim/*.raw
+sim/*.net
