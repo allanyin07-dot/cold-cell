@@ -177,7 +177,7 @@ Explain-back (3 sentences from memory, no notes):
 A voltage divider gives V_out = V_in * (R2/(R1+R2)), and this is because it only depends on the ratio of resistors 1 and 2. If both resistor values were doubled, the voltage out would remain the same. My hand calculations and LTspice agreed within 1% for dividers #3, #6 and #10, which makes sense because they utilize the same formula. The heater draws 0.74A and dissipates 1.37 W per resistor, and warming the cell by 20 K costs about 2% of its capacity, though it will likely be greater in a real world scenario
 
 ---
-## S1 — C from Python, Part 1        Date: 2026-11-15        Time: 7:30-9:30
+## S1 — C from Python, Part 1        Date: 2026-11-15        Time: 7:30-10:30
 
 **Goal:** Write, compile and run five small C programs, and explain how C's types and integer division differ from Python's.
 
@@ -323,3 +323,11 @@ Program 5 (p5_division.c):
 
 **Explain-back:**
 - In C, 5/2 is 2 because they are both integers, and to get 2.5, one of them has to be a float. On my laptop int is 4 bytes and long is 8 (but long is 4 on the STM32), which is why firmware uses fixed-width types like uint16_t and int16_t: they're the same size on every machine.Converting ADC counts with counts / 4095 * 3.3 gives 0 because counts / 4095 is integer division and truncates to 0 first, so the fix is to multiply by 3.3f first (counts * 3.3f / 4095).
+
+## Weekly review — week of Nov 11–15        Date: 2026-11-15
+Done: D1 (PASS), S1 (PASS), gcc installed; Everything Done
+Slipped (and where it moved): Nothing
+Next week's sessions: D3 Sat Nov 21 (2 h), S2 Sun Nov 22 (90 min)
+Conflicts next week: Midterm Wednesday
+One thing I learned this week: integer division silently zeroes the ADC conversion; type order matters.
+Reminder set: Google Task for Wed Nov 18, book co-op coordinator meeting.
