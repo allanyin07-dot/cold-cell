@@ -331,3 +331,109 @@ Next week's sessions: D3 Sat Nov 21 (2 h), S2 Sun Nov 22 (90 min)
 Conflicts next week: Midterm Wednesday
 One thing I learned this week: integer division silently zeroes the ADC conversion; type order matters.
 Reminder set: Google Task for Wed Nov 18, book co-op coordinator meeting.
+
+## D2 · How to read a datasheet: Fri Nov 20, 11:10–____
+
+### Video notes (A3)
+
+**Source:** <EEVblog / Phil's Lab — video title>, watched 11:12–11:22
+
+**Usual section order (TI-style datasheet):**
+Features → Applications → Description → Pin configuration → Specifications
+(Absolute max → ESD → Recommended operating conditions → Thermal → Electrical
+characteristics → Typical characteristics graphs) → Detailed description
+(block diagram, functional modes, programming, register map) → Application and
+implementation → Power supply recommendations → Layout → Package/mechanical
+
+**Absolute Maximum Ratings vs Recommended Operating Conditions:**
+- Absolute max = limits where the part may be *damaged*. Not a place to operate;
+  nothing is guaranteed there.
+- Recommended operating conditions = the range where the part is *guaranteed* to
+  meet its electrical characteristics. Design inside this range, with margin.
+
+**How to read a spec table:**
+- Only MIN/MAX values are guaranteed. TYP is "usually", so never design to TYP.
+- Every number is only valid under the test conditions in its column
+  (supply voltage, temperature, load). Check them before quoting a value.
+- Typical-characteristics graphs show trends, not guarantees.
+- Read the footnotes: they often change what a number means.
+
+**How I'll use a datasheet:** go in with a specific question, use Ctrl+F to find
+the section, record the number *with its conditions and units*, and cite the
+page/table in the notebook.
+
+### Overview:
+**What it is:** The INA219 is a current and power monitor that talks over I²C.
+It measures the small voltage across a shunt resistor (to get current) and the
+bus supply voltage, then calculates power internally.
+
+**Key facts from page 1:**
+- Senses buses from 0 to 26 V; the chip itself runs on a 3.0–5.5 V supply
+- Reports shunt voltage, bus voltage, current and power over I²C
+- 12-bit ADC, with a programmable gain on the shunt input
+  (full-scale ±40, ±80, ±160 or ±320 mV)
+- 16 selectable I²C addresses (set by the A0/A1 pins)
+- Works high-side or low-side
+- Current and power only read correctly once the Calibration register is set
+
+**Why it's in Cold Cell:** 
+-It measures the cell's current and voltage
+through a shunt (tiny resistor), so the firmware can track charge/discharge and calculate
+capacity lost in the cold.
+**Shunt:** 
+-Small precise resistor in the current path; INA219 reads the voltage across it and uses V = IR to get current
+**Bus voltage:** 
+-Voltage of the monitored supply line to ground
+  (in Cold Cell ≈ the cell voltage)
+### Register Map:
+Source: INA219 datasheet p.21–23 (register descriptions)
+
+| Addr | Register      | Access     | LSB                    |
+|------|---------------|------------|------------------------|
+| 00h  | Configuration | Read/write | —                      |
+| 01h  | Shunt voltage | Read-only  | 10 µV (signed)         |
+| 02h  | Bus voltage   | Read-only  | 4 mV (shift right 3)   |
+| 03h  | Power         | Read-only  | 20 × Current_LSB       |
+| 04h  | Current       | Read-only  | Current_LSB (I set it) |
+| 05h  | Calibration   | Read/write | —                      |
+
+**LSB = value of one count; real value = raw × LSB**
+- Bus voltage value sits in bits 15–3; low bits are flags
+  (CNVR = conversion ready, OVF = math overflow)
+- I only write two registers: Configuration and Calibration
+- Config and Calibration are written once at startup (Config first, then Cal),
+and again after any reset, since Cal resets to 0 and Current/Power read 0**
+### Calibration Equation:
+Source: INA219 datasheet p.12, Programming the Calibration Register (Eq. 1–3)
+
+1. Current_LSB = Max Expected Current / 2^15            [A/bit]
+2. Cal = trunc( 0.04096 / (Current_LSB × R_shunt) )     [R_shunt in Ω]
+3. Power_LSB = 20 × Current_LSB                          [W/bit]
+
+- Round Current_LSB *up* to a convenient number to make conversion easier
+- The Calibration register scales the shunt reading into the Current register;
+  without it, Current and Power read 0
+- Worked example on p.26: 15 A max → 457.78 µA/bit → rounded to 1 mA/bit
+
+### Accuracy:
+Source: INA219 datasheet p.5, Electrical Characteristics
+(at 25 °C, VS = 3.3 V, PGA /1 unless noted). Design to MAX, not TYP.
+
+| Parameter                   | INA219A MAX | INA219B MAX | Over −25 to 85 °C |
+|-----------------------------|-------------|-------------|-------------------|
+| Shunt offset (PGA /1)       | ±100 µV     | ±50 µV      | drift 0.1 µV/°C   |
+| Current measurement error   | ±0.5%       | ±0.3%       | A ±1%, B ±0.5%    |
+| Bus voltage error           | ±0.5%       | ±0.5%       | ±1% (both)        |
+
+- Shunt offset grows with gain: PGA /8 → A ±200 µV, B ±100 µV
+- Recommended operating temp: −25 to 85 °C. Cold Cell's −18 °C test is inside
+  this range, so the INA219 itself stays within spec in the cold.
+- Absolute max: supply 6 V, inputs 26 V
+
+### Explain-Back:
+1. The INA219's current reading depends on the Calibration register, which I
+   calculate from the Current_LSB (max expected current / 2^15) and the shunt
+   resistance (resistance of the tiny resistor on path). LSB (least significant bit) is the real-world value of one
+   count, so real value = raw counts × LSB.
+2. Absolute Maximum ratings differ from recommended operating conditions because those are the ratings at which the device can break or have a reduced lifespan whereas recommended operating conditions are the range where the part is guaranteed to meet its electrical characteristics, so I design inside those.
+3. To find a part's accuracy, I go to the electrical characteristics page on the data sheet and check the values at the specific voltage and temperature
