@@ -332,7 +332,7 @@ Conflicts next week: Midterm Wednesday
 One thing I learned this week: integer division silently zeroes the ADC conversion; type order matters.
 Reminder set: Google Task for Wed Nov 18, book co-op coordinator meeting.
 
-## D2 · How to read a datasheet: Fri Nov 20, 11:10–____
+## D2 · How to read a datasheet: Fri Nov 20, 11:10–11:45
 
 ### Video notes (A3)
 
