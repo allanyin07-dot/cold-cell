@@ -514,7 +514,7 @@ Conclusion: The divider model gives about 3156 counts at 0 °C and 2048 at 25 °
 
 Next action: S2 · C from Python, part 2, Sun Nov 22 (90 min) + weekly review. ntc.c on Sat Nov 28 uses this table as test data.
 
-Explain-back (3 sentences from memory, no notes): TODO — write before S2 on Nov 22.
-1.
-2.
-3.
+Explain-back (3 sentences):
+1. The thermistor's resistance follows the Beta equation, R = R0·exp[B·(1/T - 1/T0)] with T in kelvin. It sits at the bottom of a divider with a 10 kΩ fixed resistor, so the ADC reads counts = 4095 × R_ntc / (R_fixed + R_ntc): about 2048 at 25 °C and 3156 at 0 °C.
+2. An NTC's resistance rises as it cools, and as the bottom resistor it takes a bigger share of the 3.3 V, so colder means higher counts. The curve flattens toward 4095, which is why sensitivity drops in the deep cold.
+3. An unplugged thermistor reads 4095 (no current, so the pin sits at 3.3 V) and a shorted one reads 0. Both are outside the real range and must be flagged as faults, or the firmware would heat forever. A larger fixed resistor would be more sensitive in the cold, but 10 kΩ already resolves about 0.05 °C per count, far finer than R1's ±1 °C.
