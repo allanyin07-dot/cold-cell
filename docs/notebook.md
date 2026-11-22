@@ -437,3 +437,84 @@ Source: INA219 datasheet p.5, Electrical Characteristics
    count, so real value = raw counts × LSB.
 2. Absolute Maximum ratings differ from recommended operating conditions because those are the ratings at which the device can break or have a reduced lifespan whereas recommended operating conditions are the range where the part is guaranteed to meet its electrical characteristics, so I design inside those.
 3. To find a part's accuracy, I go to the electrical characteristics page on the data sheet and check the values at the specific voltage and temperature
+
+## D3 — The thermistor and the ADC        Date: 2026-11-21        Time: 18:00-19:30
+
+Goal: Build a table of thermistor resistance and ADC counts from -20 to +60 °C, check it by hand, and use a sensitivity plot to justify the fixed-resistor value.
+
+Requirements touched: R1 (cell temperature within ±1.0 °C over -20 to +60 °C; out-of-range readings flagged as faults)
+
+Constants: T0 = 298.15 K, R0 = 10 kΩ, B = 3950, 12-bit ADC (0-4095), NTC on the bottom of the divider.
+
+Predictions (written BEFORE computing):
+
+| Question | Prediction | Actual | Match? |
+| --- | --- | --- | --- |
+| Counts at 25 °C | 2048 (first guess 4095) | 2047.5 | ✓ after correcting |
+| Counts at 0 °C | 3000 | 3156.2 | ✓ close (5% low) |
+| Counts at -20 °C | 4000 | 3740.1 | ~ 7% high; counts flatten near 4095 |
+| Colder → counts up or down? | Up (first guess Down) | Up | ✓ after correcting |
+| Most sensitive R_fixed, -20 to +10 °C | 47 k | 47 k (mean 53 counts/°C); 22 k 48; 10 k 33 | ✓ |
+| Unplugged thermistor reads | 0 | 4095 | ✗ (0 = shorted, not open) |
+
+Setup: Laptop only, no hardware. Script: sim/ntc_table.py. Outputs: data/processed/ntc_table.csv, data/processed/ntc_sensitivity.png. Firmware commit: n/a.
+
+What I did:
+1. Learned the Beta equation and solved it for R: R = R0 · exp[B·(1/T - 1/T0)], T in kelvin.
+2. Divider to counts (NTC on the bottom): counts = 4095 × R_ntc / (R_fixed + R_ntc).
+3. Wrote sim/ntc_table.py: ntc_resistance() and adc_counts(), applied to -20…60 °C in 5 °C steps, printed and saved to CSV.
+4. Hand-checked 0, 25 and -20 °C on a calculator: all within 1 count of the script.
+5. Sensitivity for 4.7 k, 10 k, 22 k, 47 k: np.gradient of counts vs temperature on a 0.5 °C grid, plotted and saved.
+6. Fixes along the way: typo 'pands' → 'pandas'; numpy missing, installed with python -m pip; VS Code used a different interpreter than PowerShell, so ran from PowerShell.
+
+What I observed (data/processed/ntc_table.csv):
+
+| T (°C) | R_ntc (Ω) | Counts |
+| --- | --- | --- |
+| -20 | 105385 | 3740.1 |
+| -15 | 77898 | 3629.1 |
+| -10 | 58246 | 3495.0 |
+| -5 | 44026 | 3337.0 |
+| 0 | 33621 | 3156.2 |
+| 5 | 25925 | 2955.1 |
+| 10 | 20175 | 2737.9 |
+| 15 | 15837 | 2510.1 |
+| 20 | 12535 | 2277.9 |
+| 25 | 10000 | 2047.5 |
+| 30 | 8037 | 1824.7 |
+| 35 | 6506 | 1614.0 |
+| 40 | 5301 | 1418.8 |
+| 45 | 4348 | 1241.0 |
+| 50 | 3588 | 1081.4 |
+| 55 | 2978 | 939.8 |
+| 60 | 2486 | 815.4 |
+
+Hand check: 0 °C 33621 Ω / 3156.2; 25 °C 10000 Ω / 2047.5; -20 °C 105385 Ω / 3740.1. Difference from script: 0 counts.
+
+Sensitivity (counts per °C, simulated):
+
+| R_fixed | -20 °C | 0 °C | 25 °C | 60 °C | Best region |
+| --- | --- | --- | --- | --- | --- |
+| 4.7 kΩ | 10.4 | 23.3 | 39.6 | 33.1 | Warm, peak near 35 °C |
+| 10 kΩ | 20.2 | 38.3 | 45.5 | 23.4 | Room temp, peak near 18.5 °C |
+| 22 kΩ | 36.4 | 51.8 | 39.1 | 13.4 | Near 0 °C, peak near 2.5 °C |
+| 47 kΩ | 54.0 | 52.7 | 26.3 | 7.0 | Cold, peak near -11 °C |
+
+Results: Checkpoint 3156.2 counts at 0 °C and 2047.5 at 25 °C. 10 kΩ's worst case in range is 20 counts/°C (about 0.05 °C per count), 20× finer than R1 needs.
+
+Did it match my prediction? Mostly after correcting the divider direction before computing. Wrong first: counts fall when colder (the NTC is the bottom resistor, so more resistance gives more counts), and unplugged reads 0 (it reads 4095; 0 means a short).
+
+Anomalies: sensitivity peaks sit where R_ntc ≈ 1.3 × R_fixed, a few °C colder than the R_ntc = R_fixed rule of thumb, because the thermistor itself changes faster in the cold.
+
+M2 exit test: An unplugged thermistor reads near 4095 because, with no thermistor, no current flows through the fixed resistor, so it drops 0 volts and the pin sits at the full 3.3 V. It must be a fault because 4095 is what an infinitely cold thermistor would read, which never happens in real use, and if the firmware believed it, it would heat the cell forever.
+
+Checkpoint: PASS (3156.2 and 2047.5).
+
+Conclusion: The divider model gives about 3156 counts at 0 °C and 2048 at 25 °C, confirmed by hand. 10 kΩ isn't the most sensitive choice in the cold, but at 0.05 °C per count it is far finer than R1 needs, so it stays (provisional, see decisions.md ADR-02).
+
+Next action: S2 · C from Python, part 2, Sun Nov 22 (90 min) + weekly review. ntc.c on Sat Nov 28 uses this table as test data.
+
+Explain-back (3 sentences from memory, no notes): TODO — write before S2 on Nov 22.
+1.
+2.
+3.
