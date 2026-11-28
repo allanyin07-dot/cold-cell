@@ -520,3 +520,27 @@ Explain-back (3 sentences):
 3. An unplugged thermistor reads 4095 (no current, so the pin sits at 3.3 V) and a shorted one reads 0. Both are outside the real range and must be flagged as faults, or the firmware would heat forever. A larger fixed resistor would be more sensitive in the cold, but 10 kΩ already resolves about 0.05 °C per count, far finer than R1's ±1 °C.
 4. Definitions: a thermistor (NTC) is a resistor whose resistance rises as it gets colder; the fixed resistor is a normal 10 kΩ resistor that never changes; together they form a voltage divider that turns the thermistor's resistance into a voltage on the ADC pin.
 5. The ADC (analog-to-digital converter) measures that pin voltage and reports it as counts, a whole number from 0 (0 V) to 4095 (3.3 V), so the full chain is: colder cell → more thermistor resistance → higher divider voltage → more counts, and the firmware later runs it backwards to get temperature.
+
+## Cell choice (M6 / Dec 1 order)        Date: 2026-11-27
+
+Decision: protected LG INR18650 MJ1 (genuine LG cell, reseller protection board, button top).
+
+Limits from the manufacturer datasheets:
+
+| Value | LG INR18650 MJ1 (chosen) | Samsung INR18650-35E |
+| --- | --- | --- |
+| Charge temperature | 0 to 45 °C | 0 to 45 °C |
+| Discharge temperature | -20 to 60 °C | -10 to 60 °C |
+| Max charge current | 3.35 A (1C) | 2.0 A (not for cycle life) |
+| Max discharge current | 10 A (cell); 5 A on the protected version | 8 A continuous |
+| Minimum capacity | 3350 mAh (3500 nominal) | 3350 mAh |
+| Cut-off voltage | 2.5 V | 2.65 V |
+| Capacity at -10 °C (datasheet) | 70% | about 40% (table unclear) |
+
+Why the MJ1: the -18 °C discharge test is inside the MJ1's rating (-20 °C) but 8 °C outside the 35E's (-10 °C), and the MJ1 keeps more capacity in the cold. Charge window, current needs (heater about 0.74 A) and capacity don't separate the two.
+
+Why protected: on a breadboard with a heater, the protection board cuts out on a short or over-discharge. Trade-offs: about 70 mm long (needs a holder that fits protected button-top cells) and a 5 A limit (far above what Cold Cell draws).
+
+Firmware limits vs datasheet: charging allowed 5–40 °C and blocked below 3 °C sits inside the 0–45 °C charge window; the -18 °C test sits inside the -20 to 60 °C discharge window.
+
+Next action: Tier A order on Tue Dec 1 (cell + holder for protected cells).
