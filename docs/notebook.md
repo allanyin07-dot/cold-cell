@@ -544,3 +544,28 @@ Why protected: on a breadboard with a heater, the protection board cuts out on a
 Firmware limits vs datasheet: charging allowed 5–40 °C and blocked below 3 °C sits inside the 0–45 °C charge window; the -18 °C test sits inside the -20 to 60 °C discharge window.
 
 Next action: Tier A order on Tue Dec 1 (cell + holder for protected cells).
+
+## M6 reading: BU-410 + BU-502        Date: 2026-11-27
+
+Read Battery University BU-410 (charging at high and low temperatures) and BU-502 (discharging at high and low temperatures), then checked against Blueprint Section 2.5.
+
+Q1. Why does Cold Cell block charging below 3 °C when the datasheet allows 0 °C?
+Charging is blocked below 3 °C (and allowed again at 5 °C) because the thermistor is only accurate to about ±1 °C (R1) and measures the cell surface, while the core can be colder. Charging below 0 °C plates metallic lithium on the anode, which permanently degrades the cell and makes it less safe. The 3–5 °C gap is hysteresis so the charger doesn't toggle at the boundary, and 5 °C matches where BU-410 says normal charging can resume (below 5 °C the charge current should be reduced).
+
+Q2. Why does the voltage sag more at -18 °C than at room temperature for the same current?
+At -18 °C the electrochemical reactions and ion movement slow down, so internal resistance rises. For the same current, more voltage is lost across that resistance (V_terminal = OCV - I x R_internal), so the terminal voltage sags further. (Lithium plating is a charging problem, not a discharging one.)
+
+Q3. Is the capacity lost in the cold gone for good?
+No. It is temporary. The charge is still in the cell, but the voltage sag makes it reach Cold Cell's 3.0 V cutoff early and leaves charge behind that can't be reached at that temperature. Slow diffusion near the end of discharge adds to the loss beyond what resistance alone explains (Blueprint 2.5: record this gap, don't tune it away). The capacity comes back once the cell warms up. Permanent damage comes from charging cold (plating), not discharging cold.
+
+Expected values (Blueprint 2.5, assumed; mine will differ):
+
+| Cell temp | Internal resistance | Sag at 0.74 A |
+| --- | --- | --- |
+| 21 °C | about 0.075 ohm | about 56 mV |
+| 0 °C | about 0.16 ohm | about 122 mV |
+| -18 °C | about 0.36 ohm | about 264 mV |
+
+Did it match my prediction? Partly. First attempt got Q1 and Q3 wrong (thought self-heating explained the 3 °C margin, and that cold capacity loss was permanent) and wrongly linked plating to discharge.
+
+Next action: S2 · C from Python part 2, Sat Nov 28, 10:00 am.
